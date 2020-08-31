@@ -1,0 +1,17 @@
+{
+  "name": "ldb-graphql",
+  "version": "0.0.0-development",
+  "private": true,
+  "description": "Apollo Server frontend for the National Rail Live Departure Board Web Service for Real Time Train Information (“Darwin”).",
+  "homepage": "https://ldb-graphql.vercel.app/",
+  "repository": "https://github.com/kitibyte/ldb-graphql",
+  "license": "MIT",
+  "author": "David Jones <kitibyte@protonmail.com>",
+  "dependencies": {
+    "apollo-server-micro": "^2.17.0",
+    "graphql": "^14.7.0"
+  },
+  "devDependencies": {
+    "typescript": "^4.0.2"
+  }
+}
