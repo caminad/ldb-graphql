@@ -1,10 +1,9 @@
 {
   "compilerOptions": {
-    "target": "ESNext",
+    "target": "ES2019",
     "module": "ESNext",
     "lib": [],
     "noEmit": true,
-    "downlevelIteration": true,
     "isolatedModules": true,
     "strict": true,
     "noUnusedLocals": true,
