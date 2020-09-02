@@ -1,156 +1,118 @@
 import { IResolverObject } from "apollo-server-micro";
-import { Node } from "domhandler";
-import { getElementsByTagName, getOuterHTML, getText } from "domutils";
-import { decodeXML } from "entities";
 import TurndownService from "turndown";
 import fetchOpenLDBWS from "./fetchOpenLDBWS";
 
-/**
- * Returns the children of the first element to match. Returns undefined if none matched.
- * Does not recurse into nodes.
- * @param localName The part of the tag name after the “:” to match on.
- * @param nodes List of nodes to search.
- */
-function maybeGetChildren(
-  localName: string,
-  nodes: Node[] | undefined,
-): Node[] | undefined {
-  if (!nodes) {
-    return undefined;
-  }
-
-  const [element = undefined] = getElementsByTagName(
-    (name: string) => {
-      return name.slice(name.indexOf(":") + 1) === localName;
-    },
-    nodes,
-    false,
-    1,
-  );
-
-  return element?.children;
-}
-
-/**
- * Returns the text content of the given nodes. Returns undefined if there is no text.
- * @param nodes None, one, or several nodes to search.
- */
-function maybeGetText(nodes: Node | Node[] | undefined): string | undefined {
-  if (!nodes) {
-    return undefined;
-  }
-
-  return getText(nodes) || undefined;
-}
-
 const turndownService = new TurndownService();
 
-type Resolvers = IResolverObject<Node[], unknown>;
+type Resolvers = IResolverObject<Element, unknown>;
 
 export const Query: Resolvers = {
   async services(_, args) {
     const body = await fetchOpenLDBWS("GetArrivalDepartureBoard", args);
-    return maybeGetChildren("GetStationBoardResult", body);
+    return body?.getElementsByTagName("GetStationBoardResult")[0];
   },
 };
 
 export const GetStationBoardResult: Resolvers = {
-  _xml(nodes) {
-    return nodes && getOuterHTML(nodes);
+  _xml(element) {
+    return String(element);
   },
 
-  generatedAt(nodes) {
-    return maybeGetText(maybeGetChildren("generatedAt", nodes));
+  generatedAt(element) {
+    return element.getElementsByTagNameNS("*", "generatedAt")[0]?.textContent;
   },
 
-  locationName(nodes) {
-    return maybeGetText(maybeGetChildren("locationName", nodes));
+  locationName(element) {
+    return element.getElementsByTagNameNS("*", "locationName")[0]?.textContent;
   },
 
-  crs(nodes) {
-    return maybeGetText(maybeGetChildren("crs", nodes));
+  crs(element) {
+    return element.getElementsByTagNameNS("*", "crs")[0]?.textContent;
   },
 
-  nrccMessages(nodes) {
-    const messages = maybeGetChildren("nrccMessages", nodes);
-    return messages
-      ?.map(getText)
-      .map(decodeXML)
-      .map((content) => turndownService.turndown(content));
-  },
-
-  platformAvailable(nodes) {
-    return (
-      maybeGetText(maybeGetChildren("platformAvailable", nodes)) === "true"
+  nrccMessages(element) {
+    return Array.from(
+      element
+        .getElementsByTagNameNS("*", "nrccMessages")[0]
+        ?.getElementsByTagNameNS("*", "message") ?? [],
+      (el) => el.textContent && turndownService.turndown(el.textContent),
     );
   },
 
-  trainServices(nodes) {
-    const services = maybeGetChildren("trainServices", nodes);
-    return services?.map((n) => maybeGetChildren("service", [n]));
+  platformAvailable(element) {
+    return (
+      element.getElementsByTagNameNS("*", "platformAvailable")[0]
+        ?.textContent === "true"
+    );
+  },
+
+  trainServices(element) {
+    return element
+      .getElementsByTagNameNS("*", "trainServices")[0]
+      ?.getElementsByTagNameNS("*", "service");
   },
 };
 
 export const Service: Resolvers = {
-  _xml(nodes) {
-    return nodes && getOuterHTML(nodes);
+  _xml(element) {
+    return String(element);
   },
 
-  sta(nodes) {
-    return maybeGetText(maybeGetChildren("sta", nodes));
+  sta(element) {
+    return element.getElementsByTagNameNS("*", "sta")[0]?.textContent;
   },
 
-  eta(nodes) {
-    return maybeGetText(maybeGetChildren("eta", nodes));
+  eta(element) {
+    return element.getElementsByTagNameNS("*", "eta")[0]?.textContent;
   },
 
-  std(nodes) {
-    return maybeGetText(maybeGetChildren("std", nodes));
+  std(element) {
+    return element.getElementsByTagNameNS("*", "std")[0]?.textContent;
   },
 
-  etd(nodes) {
-    return maybeGetText(maybeGetChildren("etd", nodes));
+  etd(element) {
+    return element.getElementsByTagNameNS("*", "etd")[0]?.textContent;
   },
 
-  platform(nodes) {
-    return maybeGetText(maybeGetChildren("platform", nodes));
+  platform(element) {
+    return element.getElementsByTagNameNS("*", "platform")[0]?.textContent;
   },
 
-  operator(nodes) {
-    return maybeGetText(maybeGetChildren("operator", nodes));
+  operator(element) {
+    return element.getElementsByTagNameNS("*", "operator")[0]?.textContent;
   },
 
-  operatorCode(nodes) {
-    return maybeGetText(maybeGetChildren("operatorCode", nodes));
+  operatorCode(element) {
+    return element.getElementsByTagNameNS("*", "operatorCode")[0]?.textContent;
   },
 
-  serviceType(nodes) {
-    return maybeGetText(maybeGetChildren("serviceType", nodes));
+  serviceType(element) {
+    return element.getElementsByTagNameNS("*", "serviceType")[0]?.textContent;
   },
 
-  serviceID(nodes) {
-    return maybeGetText(maybeGetChildren("serviceID", nodes));
+  serviceID(element) {
+    return element.getElementsByTagNameNS("*", "serviceID")[0]?.textContent;
   },
 
-  rsid(nodes) {
-    return maybeGetText(maybeGetChildren("rsid", nodes));
+  rsid(element) {
+    return element.getElementsByTagNameNS("*", "rsid")[0]?.textContent;
   },
 
-  origin(nodes) {
-    return maybeGetChildren("location", maybeGetChildren("origin", nodes));
+  origin(element) {
+    return element.getElementsByTagNameNS("*", "origin")[0];
   },
 
-  destination(nodes) {
-    return maybeGetChildren("location", maybeGetChildren("destination", nodes));
+  destination(element) {
+    return element.getElementsByTagNameNS("*", "destination")[0];
   },
 };
 
 export const Location: Resolvers = {
-  locationName(nodes) {
-    return maybeGetText(maybeGetChildren("locationName", nodes));
+  locationName(element) {
+    return element.getElementsByTagNameNS("*", "locationName")[0]?.textContent;
   },
 
-  crs(nodes) {
-    return maybeGetText(maybeGetChildren("crs", nodes));
+  crs(element) {
+    return element.getElementsByTagNameNS("*", "crs")[0]?.textContent;
   },
 };

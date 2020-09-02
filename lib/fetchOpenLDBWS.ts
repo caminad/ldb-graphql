@@ -1,77 +1,67 @@
-import DomHandler, { Node } from "domhandler";
-import { getElementsByTagName, getText } from "domutils";
-import { decodeXML } from "entities";
-import { Parser } from "htmlparser2";
 import fetch, { Request } from "node-fetch";
-import { create } from "xmlbuilder2";
-import { XMLBuilder } from "xmlbuilder2/lib/interfaces";
+import { DOMParser } from "xmldom";
 
-function getContained(outerTagName: string, nodes: Node[]) {
-  const [container] = getElementsByTagName(outerTagName, nodes, false, 1);
-  return container?.children ?? [];
-}
+const SOAP_NS = "http://www.w3.org/2003/05/soap-envelope";
+const LDB_NS = "http://thalesgroup.com/RTTI/2017-10-01/ldb/";
 
-interface SoapEnvelopeOptions {
-  headers: Record<string, unknown>;
-  body: Record<string, unknown>;
-}
+function SoapRequest(
+  endpoint: string,
+  requestName: string,
+  params: Record<string, unknown>,
+): Request {
+  const dom = new DOMParser().parseFromString('<?xml version="1.0"?>');
 
-function SoapEnvelope(options: SoapEnvelopeOptions): XMLBuilder {
-  return create({
-    "soap:Envelope": {
-      "@xmlns:soap": "http://www.w3.org/2003/05/soap-envelope",
-      "soap:Header": options.headers,
-      "soap:Body": options.body,
-    },
-  });
-}
+  const envelope = dom.appendChild(
+    dom.createElementNS(SOAP_NS, "soap:Envelope"),
+  );
 
-function SoapRequest(endpoint: string, options: SoapEnvelopeOptions): Request {
+  const token = envelope
+    .appendChild(dom.createElementNS(SOAP_NS, "soap:Header"))
+    .appendChild(dom.createElement("AccessToken"))
+    .appendChild(dom.createElement("TokenValue"));
+  if (process.env.LDB_TOKEN) {
+    token.appendChild(dom.createTextNode(process.env.LDB_TOKEN));
+  }
+
+  const request = envelope
+    .appendChild(dom.createElementNS(SOAP_NS, "soap:Body"))
+    .appendChild(dom.createElementNS(LDB_NS, requestName));
+  for (const [paramName, paramValue] of Object.entries(params)) {
+    request
+      .appendChild(dom.createElement(paramName))
+      .appendChild(dom.createTextNode(String(paramValue)));
+  }
+
   return new Request(endpoint, {
     method: "POST",
-    headers: { "Content-Type": "application/soap+xml; charset=utf-8" },
-    body: SoapEnvelope(options).toString(),
+    headers: {
+      "Content-Type": "application/soap+xml; charset=utf-8",
+    },
+    body: String(dom),
   });
 }
 
-function parseBody(content: string): Node[] {
-  const handler = new DomHandler();
-  const parser = new Parser(handler, { xmlMode: true });
+function parseBody(content: string): Element {
+  const dom = new DOMParser().parseFromString(content, "text/xml");
 
-  parser.parseComplete(content);
-
-  const envelopeContents = getContained("soap:Envelope", handler.dom);
-  const bodyContents = getContained("soap:Body", envelopeContents);
-  const faultContents = getContained("soap:Fault", bodyContents);
-
-  if (faultContents.length > 0) {
-    const code = getText(getContained("soap:Code", faultContents));
-    const reason = decodeXML(
-      getText(getContained("soap:Reason", faultContents)) || "",
-    );
+  if (dom.getElementsByTagNameNS(SOAP_NS, "Fault").length > 0) {
+    const code = dom.getElementsByTagNameNS(SOAP_NS, "Code")[0]?.textContent;
+    const reason = dom.getElementsByTagNameNS(SOAP_NS, "Reason")[0]
+      ?.textContent;
 
     throw new Error(`Soap fault (${code}): ${reason}`);
   }
 
-  return bodyContents;
+  return dom.getElementsByTagNameNS(SOAP_NS, "Body")[0];
 }
 
 export default async function fetchOpenLDBWS(
   operation: string,
   params: Record<string, unknown>,
-): Promise<Node[] | undefined> {
+): Promise<Element | undefined> {
   const url = "https://realtime.nationalrail.co.uk/OpenLDBWS/ldb11.asmx";
 
-  const request = SoapRequest(url, {
-    headers: {
-      AccessToken: { TokenValue: process.env.LDB_TOKEN },
-    },
-
-    body: {
-      "@xmlns": "http://thalesgroup.com/RTTI/2017-10-01/ldb/",
-      [operation + "Request"]: params,
-    },
-  });
+  const request = SoapRequest(url, operation + "Request", params);
 
   const response = await fetch(request);
 
@@ -79,5 +69,5 @@ export default async function fetchOpenLDBWS(
 
   const body = parseBody(content);
 
-  return getContained(operation + "Response", body);
+  return body.getElementsByTagName(operation + "Response")[0];
 }
