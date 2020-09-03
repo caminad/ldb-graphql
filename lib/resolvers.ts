@@ -1,118 +1,106 @@
-import { IResolverObject } from "apollo-server-micro";
+import { IResolvers } from "apollo-server-micro";
+import { GraphQLScalarType, Kind } from "graphql";
 import TurndownService from "turndown";
 import fetchOpenLDBWS from "./fetchOpenLDBWS";
+import { GetStationBoardResult } from "./interfaces";
 
 const turndownService = new TurndownService();
 
-type Resolvers = IResolverObject<Element, unknown>;
+function isCRS(value: unknown): value is string {
+  return typeof value === "string" && /^[A-Z]{3}$/.test(value);
+}
 
-export const Query: Resolvers = {
-  async services(_, args) {
-    const body = await fetchOpenLDBWS("GetArrivalDepartureBoard", args);
-    return body?.getElementsByTagName("GetStationBoardResult")[0];
-  },
-};
+function isPositive(value: unknown): value is number {
+  return typeof value === "number" && value > 0;
+}
 
-export const GetStationBoardResult: Resolvers = {
-  _xml(element) {
-    return String(element);
-  },
+function isValidDate(value: unknown): value is Date {
+  return value instanceof Date && value.getTime() > 0;
+}
 
-  generatedAt(element) {
-    return element.getElementsByTagNameNS("*", "generatedAt")[0]?.textContent;
-  },
+export default {
+  CRS: new GraphQLScalarType({
+    name: "CRS",
+    description: "CRS custom scalar type",
 
-  locationName(element) {
-    return element.getElementsByTagNameNS("*", "locationName")[0]?.textContent;
-  },
+    serialize(value: unknown): string | void {
+      if (value === "???" || isCRS(value)) {
+        // Missing CRS is represented as ??? in response.
+        return value;
+      }
+    },
 
-  crs(element) {
-    return element.getElementsByTagNameNS("*", "crs")[0]?.textContent;
-  },
+    parseValue(value: unknown): string | void {
+      if (isCRS(value)) {
+        return value;
+      }
+    },
 
-  nrccMessages(element) {
-    return Array.from(
-      element
-        .getElementsByTagNameNS("*", "nrccMessages")[0]
-        ?.getElementsByTagNameNS("*", "message") ?? [],
-      (el) => el.textContent && turndownService.turndown(el.textContent),
-    );
-  },
+    parseLiteral(valueNode): string | void {
+      if (valueNode.kind === Kind.STRING && isCRS(valueNode.value)) {
+        return valueNode.value;
+      }
+    },
+  }),
 
-  platformAvailable(element) {
-    return (
-      element.getElementsByTagNameNS("*", "platformAvailable")[0]
-        ?.textContent === "true"
-    );
-  },
+  Positive: new GraphQLScalarType({
+    name: "Positive",
+    description: "Positive custom scalar type",
 
-  trainServices(element) {
-    return element
-      .getElementsByTagNameNS("*", "trainServices")[0]
-      ?.getElementsByTagNameNS("*", "service");
-  },
-};
+    serialize(value: unknown): number | void {
+      if (isPositive(value)) {
+        return value;
+      }
+    },
 
-export const Service: Resolvers = {
-  _xml(element) {
-    return String(element);
-  },
+    parseValue(value: unknown): number | void {
+      if (isPositive(value)) {
+        return value;
+      }
+    },
 
-  sta(element) {
-    return element.getElementsByTagNameNS("*", "sta")[0]?.textContent;
-  },
+    parseLiteral(valueNode): number | void {
+      if (valueNode.kind === Kind.INT) {
+        const value = parseInt(valueNode.value, 10);
 
-  eta(element) {
-    return element.getElementsByTagNameNS("*", "eta")[0]?.textContent;
-  },
+        if (isPositive(value)) {
+          return value;
+        }
+      }
+    },
+  }),
 
-  std(element) {
-    return element.getElementsByTagNameNS("*", "std")[0]?.textContent;
-  },
+  Date: new GraphQLScalarType({
+    name: "Date",
+    description: "Date custom scalar type",
 
-  etd(element) {
-    return element.getElementsByTagNameNS("*", "etd")[0]?.textContent;
-  },
+    serialize(value: unknown): Date | void {
+      if (typeof value === "string") {
+        const date = new Date(value);
 
-  platform(element) {
-    return element.getElementsByTagNameNS("*", "platform")[0]?.textContent;
-  },
+        if (isValidDate(date)) {
+          return date;
+        }
+      }
+    },
+  }),
 
-  operator(element) {
-    return element.getElementsByTagNameNS("*", "operator")[0]?.textContent;
-  },
+  Message: new GraphQLScalarType({
+    name: "Message",
+    description: "A service information message in Markdown.",
 
-  operatorCode(element) {
-    return element.getElementsByTagNameNS("*", "operatorCode")[0]?.textContent;
-  },
+    serialize(value: unknown): string | void {
+      if (typeof value === "string") {
+        return turndownService.turndown(value);
+      }
+    },
+  }),
 
-  serviceType(element) {
-    return element.getElementsByTagNameNS("*", "serviceType")[0]?.textContent;
-  },
+  Query: {
+    async station(_: never, params: Record<string, unknown>) {
+      const response = await fetchOpenLDBWS("GetArrivalDepartureBoard", params);
 
-  serviceID(element) {
-    return element.getElementsByTagNameNS("*", "serviceID")[0]?.textContent;
+      return response.$(GetStationBoardResult, "GetStationBoardResult");
+    },
   },
-
-  rsid(element) {
-    return element.getElementsByTagNameNS("*", "rsid")[0]?.textContent;
-  },
-
-  origin(element) {
-    return element.getElementsByTagNameNS("*", "origin")[0];
-  },
-
-  destination(element) {
-    return element.getElementsByTagNameNS("*", "destination")[0];
-  },
-};
-
-export const Location: Resolvers = {
-  locationName(element) {
-    return element.getElementsByTagNameNS("*", "locationName")[0]?.textContent;
-  },
-
-  crs(element) {
-    return element.getElementsByTagNameNS("*", "crs")[0]?.textContent;
-  },
-};
+} as IResolvers;
