@@ -1,7 +1,4 @@
 import { GraphQLScalarType, Kind } from "graphql";
-import TurndownService from "turndown";
-
-const turndownService = new TurndownService();
 
 function isCRS(value: unknown): value is string {
   return typeof value === "string" && /^[A-Z]{3}$/.test(value);
@@ -146,11 +143,22 @@ export const DateTime = new GraphQLScalarType({
 
 export const Message = new GraphQLScalarType({
   name: "Message",
-  description: "A service information message in Markdown.",
+  description:
+    "A service information message. Links are marked up as Markdown.",
 
   serialize(value: unknown): string | void {
     if (typeof value === "string") {
-      return turndownService.turndown(value);
+      return (
+        value
+          // Replace anchors with markdown-style links.
+          // Removes trailing space and ensures links use HTTPS.
+          .replace(
+            /<a href="https?:\/\/(.*?) *">(.*?)<\/a>/gi,
+            "[$2](https://$1)",
+          )
+          // Strip out any other tags.
+          .replace(/<[^>]+>/g, "")
+      );
     }
   },
 });
