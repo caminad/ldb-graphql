@@ -1,14 +1,7 @@
-import { ApolloServer } from "apollo-server-micro";
-import * as resolvers from "../lib/resolvers";
-import typeDefs from "../lib/typeDefs";
+import { graphqlHTTP } from "express-graphql";
+import schema from "../lib/schema";
 
-const apolloServer = new ApolloServer({
-  introspection: true,
-  playground: true,
-  typeDefs: typeDefs,
-  resolvers: resolvers,
-});
-
-export default apolloServer.createHandler({
-  path: "/api",
+export default graphqlHTTP({
+  schema: schema,
+  graphiql: true,
 });

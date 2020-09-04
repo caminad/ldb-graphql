@@ -11,31 +11,25 @@ export default class WrappedXML {
     return String(this.#element);
   }
 
-  /** Iterates over the named descendents (ignoring namespaces), yielding instances of the given wrapper subclass. */
-  *$$<T extends WrappedXML>(
-    Subclass: new (element: Element) => T,
-    tagName: string,
-  ): Generator<T, void, undefined> {
+  /** Iterates over the named descendents (ignoring namespaces). */
+  *$$(tagName: string): Generator<WrappedXML, void, undefined> {
     for (const descendent of allDescendentsByTagName(this.#element, tagName)) {
-      yield new Subclass(descendent);
+      yield new WrappedXML(descendent);
     }
   }
 
-  /** Iterates over the named descendents (ignoring namespaces), yielding the text content of each element. */
+  /** Iterates over the text content of each of the named descendents (ignoring namespaces). */
   *$$text(tagName: string): Generator<string, void, undefined> {
     for (const descendent of allDescendentsByTagName(this.#element, tagName)) {
       yield descendent.textContent ?? "";
     }
   }
 
-  /** Returns the first named descendent (ignoring namespaces) as an instance of the given wrapper subclass. */
-  $<T extends WrappedXML>(
-    Subclass: new (element: Element) => T,
-    tagName: string,
-  ): T | undefined {
+  /** Returns the first named descendent (ignoring namespaces). */
+  $(tagName: string): WrappedXML | undefined {
     const descendent = firstDescendentByTagName(this.#element, tagName);
     if (descendent) {
-      return new Subclass(descendent);
+      return new WrappedXML(descendent);
     }
     return;
   }

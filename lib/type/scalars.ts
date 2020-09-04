@@ -1,8 +1,5 @@
-import { IResolverObject } from "apollo-server-micro";
 import { GraphQLScalarType, Kind } from "graphql";
 import TurndownService from "turndown";
-import fetchOpenLDBWS from "./fetchOpenLDBWS";
-import { GetStationBoardResult } from "./interfaces";
 
 const turndownService = new TurndownService();
 
@@ -10,9 +7,10 @@ function isCRS(value: unknown): value is string {
   return typeof value === "string" && /^[A-Z]{3}$/.test(value);
 }
 
-const CRS = new GraphQLScalarType({
+export const CRS = new GraphQLScalarType({
   name: "CRS",
-  description: "CRS custom scalar type",
+  description:
+    "A computer reservation system (CRS) / national reservation system (NRS) code.",
 
   serialize(value: unknown): string | void {
     if (value === "???" || isCRS(value)) {
@@ -38,8 +36,8 @@ function isPositive(value: unknown): value is number {
   return typeof value === "number" && value >= 1;
 }
 
-const Positive = new GraphQLScalarType({
-  name: "Positive",
+export const PositiveInt = new GraphQLScalarType({
+  name: "PositiveInt",
   description: "An integer greater than 0.",
 
   serialize(value: unknown): number | void {
@@ -69,7 +67,7 @@ function isTimeOffset(value: unknown): value is number {
   return typeof value === "number" && value >= -120 && value <= 119;
 }
 
-const TimeOffset = new GraphQLScalarType({
+export const TimeOffset = new GraphQLScalarType({
   name: "TimeOffset",
   description: "An integer in the interval [-120..119].",
 
@@ -100,7 +98,7 @@ function isTimeWindow(value: unknown): value is number {
   return typeof value === "number" && value >= 1 && value <= 120;
 }
 
-const TimeWindow = new GraphQLScalarType({
+export const TimeWindow = new GraphQLScalarType({
   name: "TimeWindow",
   description: "An integer in the interval [1..120].",
 
@@ -131,8 +129,8 @@ function isValidDate(value: unknown): value is Date {
   return value instanceof Date && value.getTime() > 0;
 }
 
-const Date_ = new GraphQLScalarType({
-  name: "Date",
+export const DateTime = new GraphQLScalarType({
+  name: "DateTime",
   description: "Date custom scalar type",
 
   serialize(value: unknown): Date | void {
@@ -146,7 +144,7 @@ const Date_ = new GraphQLScalarType({
   },
 });
 
-const Message = new GraphQLScalarType({
+export const Message = new GraphQLScalarType({
   name: "Message",
   description: "A service information message in Markdown.",
 
@@ -156,14 +154,3 @@ const Message = new GraphQLScalarType({
     }
   },
 });
-
-const Query: IResolverObject<never, never, Record<string, unknown>> = {
-  async station(_, params) {
-    console.log(params);
-    const response = await fetchOpenLDBWS("GetArrivalDepartureBoard", params);
-
-    return response.$(GetStationBoardResult, "GetStationBoardResult");
-  },
-};
-
-export { CRS, Positive, TimeOffset, TimeWindow, Date_ as Date, Message, Query };
