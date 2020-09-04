@@ -1,8 +1,8 @@
 # `ldb-graphql`
 
-[Apollo Server](https://www.apollographql.com/docs/apollo-server/) frontend for the [National Rail Live Departure Board Web Service for Real Time Train Information (“Darwin”)](https://realtime.nationalrail.co.uk/OpenLDBWS/).
+GraphQL frontend for the [National Rail Live Departure Board Web Service for Real Time Train Information (“Darwin”)](https://realtime.nationalrail.co.uk/OpenLDBWS/).
 
-- [Playground](https://ldb-graphql.vercel.app/api)
+- [IDE](https://ldb-graphql.vercel.app/api)
 
 ## Development
 
