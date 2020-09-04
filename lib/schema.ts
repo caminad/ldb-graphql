@@ -1,5 +1,5 @@
 import { GraphQLNonNull, GraphQLObjectType, GraphQLSchema } from "graphql";
-import fetchOpenLDBWS from "./fetchOpenLDBWS";
+import fetchXML from "./fetchXML";
 import { FilterType } from "./type/enums";
 import { GetStationBoardResult } from "./type/objects";
 import { CRS, PositiveInt, TimeOffset, TimeWindow } from "./type/scalars";
@@ -53,11 +53,10 @@ export default new GraphQLSchema({
           },
         },
 
-        resolve: async (_, args) => {
-          const xml = await fetchOpenLDBWS("GetArrivalDepartureBoard", args);
-
-          return xml.$("GetStationBoardResult");
-        },
+        resolve: (_, args) =>
+          fetchXML("GetArrivalDepartureBoard", args).then((xml) =>
+            xml.$("GetStationBoardResult"),
+          ),
       },
     },
   }),
