@@ -45,7 +45,7 @@ const ServiceLocation = new GraphQLObjectType<WrappedXML>({
       type: new GraphQLNonNull(GraphQLBoolean),
       description:
         "This origin or destination can no longer be reached because the association has been cancelled.",
-      resolve: (xml) => xml.$text("assocIsCancelled"),
+      resolve: (xml) => xml.$text("assocIsCancelled") === "true",
     },
   },
 });
