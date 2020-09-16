@@ -140,25 +140,3 @@ export const DateTime = new GraphQLScalarType({
     }
   },
 });
-
-export const Message = new GraphQLScalarType({
-  name: "Message",
-  description:
-    "A service information message. Links are marked up as Markdown.",
-
-  serialize(value: unknown): string | void {
-    if (typeof value === "string") {
-      return (
-        value
-          // Replace anchors with markdown-style links.
-          // Removes trailing space and ensures links use HTTPS.
-          .replace(
-            /<a href="https?:\/\/(.*?) *">(.*?)<\/a>/gi,
-            "[$2](https://$1)",
-          )
-          // Strip out any other tags.
-          .replace(/<[^>]+>/g, "")
-      );
-    }
-  },
-});

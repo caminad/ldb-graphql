@@ -8,7 +8,7 @@ import {
 } from "graphql";
 import WrappedXML from "../WrappedXML";
 import { FilterType, ToiletStatus, ToiletType } from "./enums";
-import { CRS, DateTime, Message } from "./scalars";
+import { CRS, DateTime } from "./scalars";
 
 const ServiceLocation = new GraphQLObjectType<WrappedXML>({
   name: "ServiceLocation",
@@ -335,7 +335,7 @@ export const GetStationBoardResult = new GraphQLObjectType<WrappedXML>({
     },
 
     nrccMessages: {
-      type: new GraphQLList(new GraphQLNonNull(Message)),
+      type: new GraphQLList(new GraphQLNonNull(GraphQLString)),
       description:
         "An optional list of textual messages that should be displayed with the station board. The message may include embedded and xml encoded HTML-like hyperlinks and paragraphs. The messages are typically used to display important disruption information that applies to the location that the station board was for. Any embedded <p> tags are used to force a new-line in the output. Embedded <a> tags allow links to external web pages that may provide more information. Output channels that do not support HTML should strip out the <a> tags and just leave the enclosed text.",
       resolve: (xml) => xml.$("nrccMessages")?.$$text("message"),
