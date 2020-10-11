@@ -4,9 +4,9 @@
   "private": true,
   "description": "GraphQL frontend for the National Rail Live Departure Board Web Service for Real Time Train Information (“Darwin”).",
   "homepage": "https://ldb-graphql.vercel.app/",
-  "repository": "https://github.com/kitibyte/ldb-graphql",
+  "repository": "https://github.com/DavidJones418/ldb-graphql",
   "license": "MIT",
-  "author": "David Jones <kitibyte@protonmail.com>",
+  "author": "David Jones",
   "dependencies": {
     "express-graphql": "^0.11.0",
     "graphql": "^15.3.0",
